@@ -6,4 +6,441 @@
 
 /* Start Screen */
 .start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #001122 0%, #003366 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    font-family: 'Times New Roman', serif;
+}
+
+.start-content {
+    text-align: center;
+    color: #ffffff;
+    max-width: 800px;
+    padding: 40px;
+}
+
+.game-title {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    color: #ffd700;
+}
+
+.game-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: #cccccc;
+}
+
+.historical-info {
+    margin-bottom: 3rem;
+    padding: 20px;
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.historical-info p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.difficulty-selection {
+    margin-bottom: 3rem;
+}
+
+.difficulty-selection h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #ffd700;
+}
+
+.difficulty-btn {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    margin: 1rem auto;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #2c4c6c 0%, #1a3a5a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Times New Roman', serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.difficulty-btn:hover {
+    background: linear-gradient(135deg, #3c5c7c 0%, #2a4a6a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+}
+
+.difficulty-name {
+    display: block;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.difficulty-desc {
+    display: block;
+    font-size: 0.9rem;
+    color: #cccccc;
+    margin-top: 5px;
+}
+
+.controls-info {
+    text-align: left;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.controls-info h3 {
+    text-align: center;
+    color: #ffd700;
+    margin-bottom: 1rem;
+}
+
+.control-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+}
+
+.key {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* Game HUD */
+.game-hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 100;
+    font-family: 'Times New Roman', serif;
+}
+
+.game-hud > div {
+    pointer-events: auto;
+}
+
+/* Survival Prediction Panel */
+.survival-prediction {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: rgba(0, 17, 34, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 20px;
+    color: #ffffff;
+}
+
+.survival-prediction .label {
+    display: block;
+    font-size: 0.9rem;
+    color: #cccccc;
+    margin-bottom: 5px;
+}
+
+.survival-rate .percentage {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #00ff00;
+}
+
+.risk-level {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.risk-level.safe { background: #00aa00; }
+.risk-level.caution { background: #ffaa00; }
+.risk-level.danger { background: #ff6600; }
+.risk-level.critical { background: #ff0000; }
+
+.countdown-timer {
+    margin: 15px 0;
+}
+
+.timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ff6600;
+}
+
+.recommendations {
+    margin-top: 15px;
+}
+
+.action-list {
+    margin-top: 10px;
+}
+
+.action {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+/* Ship Status Panel */
+.ship-status {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 250px;
+    background: rgba(0, 17, 34, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 20px;
+    color: #ffffff;
+}
+
+.ship-status > div {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+}
+
+.ship-status .label {
+    color: #cccccc;
+}
+
+.ship-status .value {
+    font-weight: bold;
+}
+
+.ship-status .value.running { color: #00ff00; }
+.ship-status .value.failed { color: #ff0000; }
+
+/* Mini Map */
+.mini-map {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 220px;
+    background: rgba(0, 17, 34, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 15px;
+    color: #ffffff;
+}
+
+#mini-map-canvas {
+    width: 200px;
+    height: 200px;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+.map-legend {
+    margin-top: 10px;
+    font-size: 0.8rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.ship-icon {
+    width: 12px;
+    height: 12px;
+    background: #ffff00;
+    margin-right: 8px;
+    border-radius: 2px;
+}
+
+.iceberg-icon {
+    width: 12px;
+    height: 12px;
+    background: #aaccff;
+    margin-right: 8px;
+    border-radius: 50%;
+}
+
+/* Game Time */
+.game-time {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+    background: rgba(0, 17, 34, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 15px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.game-time .label {
+    display: block;
+    font-size: 0.9rem;
+    color: #cccccc;
+    margin-bottom: 5px;
+}
+
+.game-time .time {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* Game Over Screen */
+.game-over-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #001122 0%, #003366 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    font-family: 'Times New Roman', serif;
+}
+
+.game-over-content {
+    text-align: center;
+    color: #ffffff;
+    max-width: 600px;
+    padding: 40px;
+}
+
+.game-over-title {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.outcome-message.success {
+    color: #00ff00;
+}
+
+.outcome-message.failure {
+    color: #ff6666;
+}
+
+.outcome-message p {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+}
+
+.final-stats {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 2rem 0;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+}
+
+.stat-label {
+    color: #cccccc;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.historical-comparison {
+    margin: 2rem 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.historical-comparison h3 {
+    color: #ffd700;
+    margin-bottom: 1rem;
+}
+
+.comparison-result.better {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+.comparison-result.similar {
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+.game-over-actions {
+    margin-top: 2rem;
+}
+
+.restart-btn, .menu-btn {
+    margin: 0 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #2c4c6c 0%, #1a3a5a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Times New Roman', serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.restart-btn:hover, .menu-btn:hover {
+    background: linear-gradient(135deg, #3c5c7c 0%, #2a4a6a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .survival-prediction,
+    .ship-status,
+    .mini-map {
+        width: calc(100vw - 40px);
+        position: relative;
+        margin: 10px 20px;
+    }
     
+    .game-hud {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .game-title {
+        font-size: 2.5rem;
+    }
+    
+    .start-content {
+        padding: 20px;
+    }
+}

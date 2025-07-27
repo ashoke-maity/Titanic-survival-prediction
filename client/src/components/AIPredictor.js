@@ -27,63 +27,35 @@ export class AIPredictor {
         const environmentalFactors = this.getEnvironmentalFactors(difficulty);
         const shipFactors = this.getShipFactors(shipVelocity);
 
-        // Calculate base survival rate
-        let survivalRate = 100;
-
-        if (threats.length > 0) {
-            const primaryThreat = threats[0];
-            prediction.nearestThreat = primaryThreat;
-            prediction.timeToImpact = primaryThreat.timeToImpact;
-
-            // Distance factor (closer = more dangerous)
-            const distanceFactor = Math.max(0, 1 - primaryThreat.distance / 200);
-            survivalRate -= distanceFactor * 40;
-
-            // Speed factor (faster = more dangerous)
-            const speedFactor = shipVelocity.length() / 20;
-            survivalRate -= speedFactor * 20;
-
-            // Trajectory factor (heading towards iceberg = more dangerous)
-            const trajectoryFactor = this.calculateTrajectoryRisk(
-                shipPosition, 
-                shipVelocity, 
-                primaryThreat.position
-            );
-            survivalRate -= trajectoryFactor * 30;
-
-            // Multiple threats factor
-            if (threats.length > 1) {
-                survivalRate -= (threats.length - 1) * 10;
-            }
-        }
-
-        // Apply environmental factors
-        survivalRate *= environmentalFactors.visibilityMultiplier;
-        survivalRate *= environmentalFactors.weatherMultiplier;
-
-        // Apply ship factors
-        survivalRate *= shipFactors.maneuverabilityMultiplier;
-
-        // Clamp survival rate
-        survivalRate = Math.max(0, Math.min(100, survivalRate));
-        prediction.survivalPercentage = Math.round(survivalRate);
+        // Calculate base survival percentage
+        prediction.survivalPercentage = this.calculateSurvivalRate(
+            threats,
+            environmentalFactors,
+            shipFactors
+        );
 
         // Determine risk level
-        prediction.riskLevel = this.getRiskLevel(survivalRate);
+        prediction.riskLevel = this.getRiskLevel(prediction.survivalPercentage);
 
         // Generate recommendations
         prediction.recommendations = this.generateRecommendations(
-            shipPosition, 
-            shipVelocity, 
-            threats, 
-            prediction.riskLevel
+            threats,
+            shipPosition,
+            shipVelocity
         );
 
-        // Calculate confidence based on data quality
-        prediction.confidence = this.calculateConfidence(threats, environmentalFactors);
+        // Find nearest threat and time to impact
+        if (threats.length > 0) {
+            prediction.nearestThreat = threats[0];
+            prediction.timeToImpact = this.calculateTimeToImpact(
+                shipPosition,
+                shipVelocity,
+                threats[0]
+            );
+        }
 
-        // Store in history for trend analysis
-        this.addToHistory(prediction);
+        // Update prediction history
+        this.updateHistory(prediction);
 
         return prediction;
     }
@@ -91,120 +63,166 @@ export class AIPredictor {
     analyzeThreats(shipPosition, shipVelocity, icebergPositions) {
         const threats = [];
         const lookAheadTime = 30; // seconds
+        const safetyMargin = 20; // meters
 
         icebergPositions.forEach(iceberg => {
             const distance = shipPosition.distanceTo(iceberg.position);
-            const dangerRadius = this.getDangerRadius(iceberg.size);
+            const relativePosition = iceberg.position.clone().sub(shipPosition);
+            
+            // Calculate if ship is on collision course
+            const projectedPosition = shipPosition.clone().add(
+                shipVelocity.clone().multiplyScalar(lookAheadTime)
+            );
+            
+            const futureDistance = projectedPosition.distanceTo(iceberg.position);
+            const icebergRadius = this.getIcebergRadius(iceberg.size, iceberg.type);
+            
+            // Threat assessment
+            const threat = {
+                iceberg,
+                distance,
+                futureDistance,
+                icebergRadius,
+                threatLevel: 0,
+                collisionProbability: 0,
+                avoidanceOptions: []
+            };
 
-            if (distance < dangerRadius * 3) { // Only consider nearby icebergs
-                const timeToImpact = this.calculateTimeToImpact(
-                    shipPosition,
-                    shipVelocity,
-                    iceberg.position,
-                    dangerRadius
+            // Calculate collision probability
+            if (futureDistance < icebergRadius + safetyMargin) {
+                threat.collisionProbability = Math.max(0, 
+                    1 - (futureDistance / (icebergRadius + safetyMargin))
                 );
+            }
 
-                if (timeToImpact !== null && timeToImpact < lookAheadTime) {
-                    threats.push({
-                        position: iceberg.position,
-                        size: iceberg.size,
-                        distance,
-                        timeToImpact,
-                        dangerRadius,
-                        severity: this.calculateThreatSeverity(distance, timeToImpact, iceberg.size)
-                    });
-                }
+            // Calculate threat level based on distance and collision probability
+            threat.threatLevel = this.calculateThreatLevel(
+                distance,
+                threat.collisionProbability,
+                icebergRadius
+            );
+
+            // Generate avoidance options
+            threat.avoidanceOptions = this.generateAvoidanceOptions(
+                shipPosition,
+                shipVelocity,
+                iceberg.position,
+                icebergRadius
+            );
+
+            if (threat.threatLevel > 0.1) {
+                threats.push(threat);
             }
         });
 
-        // Sort by severity (most dangerous first)
-        threats.sort((a, b) => b.severity - a.severity);
+        // Sort threats by level (highest first)
+        threats.sort((a, b) => b.threatLevel - a.threatLevel);
 
         return threats;
     }
 
-    calculateTimeToImpact(shipPosition, shipVelocity, icebergPosition, dangerRadius) {
-        if (shipVelocity.length() < 0.1) return null; // Ship not moving
-
-        // Calculate closest approach point
-        const toIceberg = icebergPosition.clone().sub(shipPosition);
-        const velocityNormalized = shipVelocity.clone().normalize();
-        
-        const projectionLength = toIceberg.dot(velocityNormalized);
-        
-        if (projectionLength < 0) return null; // Iceberg is behind ship
-
-        const closestPoint = shipPosition.clone().add(
-            velocityNormalized.multiplyScalar(projectionLength)
-        );
-        
-        const closestDistance = closestPoint.distanceTo(icebergPosition);
-        
-        if (closestDistance > dangerRadius) return null; // Will miss
-
-        // Calculate time to reach danger zone
-        const timeToClosest = projectionLength / shipVelocity.length();
-        const safeDistance = Math.sqrt(dangerRadius * dangerRadius - closestDistance * closestDistance);
-        const timeToImpact = timeToClosest - safeDistance / shipVelocity.length();
-
-        return Math.max(0, timeToImpact);
-    }
-
-    calculateTrajectoryRisk(shipPosition, shipVelocity, icebergPosition) {
-        if (shipVelocity.length() < 0.1) return 0;
-
-        const toIceberg = icebergPosition.clone().sub(shipPosition).normalize();
-        const velocityNormalized = shipVelocity.clone().normalize();
-        
-        const dot = toIceberg.dot(velocityNormalized);
-        return Math.max(0, dot); // 0 = perpendicular, 1 = heading directly towards
-    }
-
-    getDangerRadius(icebergSize) {
+    getIcebergRadius(size, type) {
         const baseRadius = {
-            small: 15,
-            medium: 25,
-            large: 40,
-            massive: 60
+            small: 5,
+            medium: 8,
+            large: 12,
+            massive: 18
         };
         
-        return baseRadius[icebergSize] || 20;
+        return (baseRadius[type] || 5) * size;
     }
 
-    calculateThreatSeverity(distance, timeToImpact, icebergSize) {
-        const sizeMultiplier = {
-            small: 1,
-            medium: 1.5,
-            large: 2,
-            massive: 3
-        };
+    calculateThreatLevel(distance, collisionProbability, icebergRadius) {
+        const proximityFactor = Math.max(0, 1 - distance / 200);
+        const sizeFactor = Math.min(1, icebergRadius / 20);
+        
+        return (proximityFactor * 0.4 + collisionProbability * 0.5 + sizeFactor * 0.1);
+    }
 
-        const distanceScore = Math.max(0, 100 - distance);
-        const timeScore = timeToImpact > 0 ? Math.max(0, 100 - timeToImpact * 3) : 0;
-        const sizeScore = (sizeMultiplier[icebergSize] || 1) * 20;
+    generateAvoidanceOptions(shipPosition, shipVelocity, icebergPosition, icebergRadius) {
+        const options = [];
+        const safeDistance = icebergRadius + 30;
+        
+        // Calculate avoidance vectors
+        const toIceberg = icebergPosition.clone().sub(shipPosition).normalize();
+        const leftAvoidance = new THREE.Vector3(-toIceberg.z, 0, toIceberg.x);
+        const rightAvoidance = new THREE.Vector3(toIceberg.z, 0, -toIceberg.x);
+        
+        // Check left turn option
+        const leftTarget = icebergPosition.clone().add(leftAvoidance.multiplyScalar(safeDistance));
+        options.push({
+            direction: 'left',
+            target: leftTarget,
+            difficulty: this.calculateManeuverDifficulty(shipPosition, shipVelocity, leftTarget)
+        });
+        
+        // Check right turn option
+        const rightTarget = icebergPosition.clone().add(rightAvoidance.multiplyScalar(safeDistance));
+        options.push({
+            direction: 'right',
+            target: rightTarget,
+            difficulty: this.calculateManeuverDifficulty(shipPosition, shipVelocity, rightTarget)
+        });
+        
+        // Check stop option
+        options.push({
+            direction: 'stop',
+            target: shipPosition.clone(),
+            difficulty: shipVelocity.length() / 20 // Harder to stop at high speed
+        });
+        
+        return options.sort((a, b) => a.difficulty - b.difficulty);
+    }
 
-        return distanceScore + timeScore + sizeScore;
+    calculateManeuverDifficulty(shipPosition, shipVelocity, targetPosition) {
+        const distance = shipPosition.distanceTo(targetPosition);
+        const speed = shipVelocity.length();
+        const angle = this.calculateTurnAngle(shipVelocity, targetPosition.clone().sub(shipPosition));
+        
+        // Difficulty factors
+        const distanceFactor = Math.min(1, distance / 100);
+        const speedFactor = Math.min(1, speed / 20);
+        const angleFactor = Math.abs(angle) / Math.PI;
+        
+        return distanceFactor * 0.3 + speedFactor * 0.4 + angleFactor * 0.3;
+    }
+
+    calculateTurnAngle(velocity, direction) {
+        const currentAngle = Math.atan2(velocity.z, velocity.x);
+        const targetAngle = Math.atan2(direction.z, direction.x);
+        
+        let angle = targetAngle - currentAngle;
+        
+        // Normalize angle to [-π, π]
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        
+        return angle;
     }
 
     getEnvironmentalFactors(difficulty) {
         const factors = {
-            visibilityMultiplier: 1,
-            weatherMultiplier: 1,
-            currentStrength: 0
+            visibility: 1.0,
+            waveHeight: 1.0,
+            windSpeed: 1.0,
+            temperature: 1.0
         };
 
         switch (difficulty) {
             case 'Calm Seas':
-                factors.visibilityMultiplier = 1.0;
-                factors.weatherMultiplier = 1.0;
+                factors.visibility = 0.9;
+                factors.waveHeight = 0.5;
+                factors.windSpeed = 0.3;
                 break;
             case 'Rough Waters':
-                factors.visibilityMultiplier = 0.9;
-                factors.weatherMultiplier = 0.85;
+                factors.visibility = 0.7;
+                factors.waveHeight = 1.2;
+                factors.windSpeed = 0.8;
                 break;
             case 'Perfect Storm':
-                factors.visibilityMultiplier = 0.7;
-                factors.weatherMultiplier = 0.6;
+                factors.visibility = 0.4;
+                factors.waveHeight = 2.0;
+                factors.windSpeed = 1.5;
                 break;
         }
 
@@ -215,20 +233,44 @@ export class AIPredictor {
         const speed = shipVelocity.length();
         
         return {
-            maneuverabilityMultiplier: Math.max(0.5, 1 - speed / 40), // Harder to turn at high speed
-            stoppingDistance: speed * speed / 10, // Realistic stopping distance
-            turnRadius: speed * 2 // Turn radius increases with speed
+            speed,
+            maneuverability: Math.max(0.1, 1 - speed / 25), // Harder to turn at high speed
+            stoppingDistance: speed * speed / 10, // Quadratic relationship
+            reactionTime: Math.min(3, speed / 5) // Longer reaction time at high speed
         };
     }
 
-    getRiskLevel(survivalRate) {
-        if (survivalRate >= this.riskThresholds.safe) return 'safe';
-        if (survivalRate >= this.riskThresholds.caution) return 'caution';
-        if (survivalRate >= this.riskThresholds.danger) return 'danger';
+    calculateSurvivalRate(threats, environmentalFactors, shipFactors) {
+        let baseRate = 100;
+
+        // Reduce survival rate based on threats
+        threats.forEach(threat => {
+            const threatReduction = threat.threatLevel * threat.collisionProbability * 50;
+            baseRate -= threatReduction;
+        });
+
+        // Environmental factors
+        baseRate *= environmentalFactors.visibility;
+        baseRate *= (2 - environmentalFactors.waveHeight) / 2;
+        baseRate *= (2 - environmentalFactors.windSpeed) / 2;
+
+        // Ship factors
+        if (shipFactors.speed > 15) {
+            baseRate *= 0.8; // High speed penalty
+        }
+
+        // Ensure rate is within bounds
+        return Math.max(0, Math.min(100, baseRate));
+    }
+
+    getRiskLevel(survivalPercentage) {
+        if (survivalPercentage >= this.riskThresholds.safe) return 'safe';
+        if (survivalPercentage >= this.riskThresholds.caution) return 'caution';
+        if (survivalPercentage >= this.riskThresholds.danger) return 'danger';
         return 'critical';
     }
 
-    generateRecommendations(shipPosition, shipVelocity, threats, riskLevel) {
+    generateRecommendations(threats, shipPosition, shipVelocity) {
         const recommendations = [];
 
         if (threats.length === 0) {
@@ -237,92 +279,82 @@ export class AIPredictor {
         }
 
         const primaryThreat = threats[0];
-        const toThreat = primaryThreat.position.clone().sub(shipPosition);
-        const shipHeading = shipVelocity.clone().normalize();
+        const bestAvoidance = primaryThreat.avoidanceOptions[0];
 
-        // Determine best evasion direction
-        const cross = new THREE.Vector3().crossVectors(shipHeading, toThreat);
-        const turnDirection = cross.y > 0 ? 'turn right' : 'turn left';
-
-        switch (riskLevel) {
-            case 'critical':
-                recommendations.push('full stop');
-                recommendations.push(turnDirection);
-                recommendations.push('reverse engines');
-                break;
-            case 'danger':
-                recommendations.push('reduce speed');
-                recommendations.push(turnDirection);
-                break;
-            case 'caution':
-                recommendations.push(turnDirection);
-                recommendations.push('reduce speed');
-                break;
-            case 'safe':
-                recommendations.push('maintain course');
-                break;
+        // Speed recommendations
+        const speed = shipVelocity.length();
+        if (speed > 15 && primaryThreat.distance < 100) {
+            recommendations.push('reduce speed');
+        } else if (speed < 5 && primaryThreat.distance > 200) {
+            recommendations.push('increase speed');
         }
 
-        // Add specific recommendations based on threat analysis
-        if (primaryThreat.timeToImpact < 10) {
+        // Direction recommendations
+        if (bestAvoidance) {
+            switch (bestAvoidance.direction) {
+                case 'left':
+                    recommendations.push('turn left');
+                    break;
+                case 'right':
+                    recommendations.push('turn right');
+                    break;
+                case 'stop':
+                    recommendations.push('full stop');
+                    break;
+            }
+        }
+
+        // Emergency recommendations
+        if (primaryThreat.collisionProbability > 0.7) {
             recommendations.unshift('emergency maneuver');
         }
 
-        if (threats.length > 2) {
-            recommendations.push('navigate to open water');
-        }
-
-        return recommendations.slice(0, 3); // Limit to 3 recommendations
+        return recommendations;
     }
 
-    calculateConfidence(threats, environmentalFactors) {
-        let confidence = 0.95;
+    calculateTimeToImpact(shipPosition, shipVelocity, threat) {
+        if (threat.collisionProbability < 0.1) return null;
 
-        // Reduce confidence in poor visibility
-        confidence *= environmentalFactors.visibilityMultiplier;
-
-        // Reduce confidence with many threats (more complex situation)
-        if (threats.length > 3) {
-            confidence *= 0.8;
-        }
-
-        // Reduce confidence for very close threats (less prediction time)
-        const closestThreat = threats[0];
-        if (closestThreat && closestThreat.distance < 50) {
-            confidence *= 0.7;
-        }
-
-        return Math.max(0.5, confidence);
+        const relativeVelocity = shipVelocity.clone();
+        const relativePosition = threat.iceberg.position.clone().sub(shipPosition);
+        
+        // Simple time to closest approach calculation
+        const closingSpeed = -relativeVelocity.dot(relativePosition.normalize());
+        
+        if (closingSpeed <= 0) return null; // Moving away
+        
+        const distance = relativePosition.length() - threat.icebergRadius;
+        return Math.max(0, distance / closingSpeed);
     }
 
-    addToHistory(prediction) {
+    updateHistory(prediction) {
         this.predictionHistory.push({
             timestamp: Date.now(),
-            ...prediction
+            prediction: { ...prediction }
         });
 
+        // Limit history length
         if (this.predictionHistory.length > this.maxHistoryLength) {
             this.predictionHistory.shift();
         }
     }
 
-    getTrend() {
-        if (this.predictionHistory.length < 10) return 'stable';
+    getConfidenceLevel(prediction) {
+        // Base confidence on prediction stability
+        if (this.predictionHistory.length < 10) return 0.5;
 
-        const recent = this.predictionHistory.slice(-10);
-        const older = this.predictionHistory.slice(-20, -10);
+        const recentPredictions = this.predictionHistory.slice(-10);
+        const variance = this.calculateVariance(
+            recentPredictions.map(p => p.prediction.survivalPercentage)
+        );
 
-        const recentAvg = recent.reduce((sum, p) => sum + p.survivalPercentage, 0) / recent.length;
-        const olderAvg = older.reduce((sum, p) => sum + p.survivalPercentage, 0) / older.length;
-
-        const difference = recentAvg - olderAvg;
-
-        if (difference > 5) return 'improving';
-        if (difference < -5) return 'deteriorating';
-        return 'stable';
+        // Lower variance = higher confidence
+        return Math.max(0.1, Math.min(0.99, 1 - variance / 1000));
     }
 
-    reset() {
-        this.predictionHistory = [];
+    calculateVariance(values) {
+        const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+        const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+        return squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
     }
 }

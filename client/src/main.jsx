@@ -1,10 +1,8 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import { GameManager } from './pages/GameManager.jsx';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// Initialize the game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    const gameContainer = document.getElementById('root');
+    const gameManager = new GameManager(gameContainer);
+    gameManager.init();
+});

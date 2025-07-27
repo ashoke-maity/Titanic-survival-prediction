@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import './GameUI.css';
+// Pure JavaScript UI component - no React needed
 
 export class GameUI {
     constructor() {
@@ -57,6 +56,18 @@ export class GameUI {
                     <span class="label">Engine</span>
                     <span class="value running">RUNNING</span>
                 </div>
+                <div class="rudder-angle">
+                    <span class="label">Rudder</span>
+                    <span class="value">0°</span>
+                </div>
+                <div class="steering-response">
+                    <span class="label">Steering</span>
+                    <span class="value">100%</span>
+                </div>
+                <div class="emergency-status">
+                    <span class="label">Emergency</span>
+                    <span class="value ready">READY</span>
+                </div>
                 <div class="damage-assessment">
                     <span class="label">Damage</span>
                     <span class="value">0%</span>
@@ -64,6 +75,12 @@ export class GameUI {
                 <div class="crew-morale">
                     <span class="label">Crew Morale</span>
                     <span class="value">100%</span>
+                </div>
+                <div class="historical-context" style="margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 0.8rem;">
+                    <div style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">Historical Context</div>
+                    <div style="color: #cccccc;">RMS Titanic - April 14, 1912</div>
+                    <div style="color: #cccccc;">Length: 269m | Mass: 52,310 tons</div>
+                    <div style="color: #cccccc;">Can you change history?</div>
                 </div>
             </div>
             
@@ -284,6 +301,18 @@ export class GameUI {
         const engineElement = this.hudElement.querySelector('.ship-status .engine-status .value');
         engineElement.textContent = shipStatus.engineStatus.toUpperCase();
         engineElement.className = `value ${shipStatus.engineStatus}`;
+        
+        // Update new steering information
+        const rudderAngle = shipStatus.rudderAngle || 0;
+        this.hudElement.querySelector('.ship-status .rudder-angle .value').textContent = `${Math.round(rudderAngle * 180 / Math.PI)}°`;
+        
+        const steeringResponse = shipStatus.steeringResponsiveness || 1;
+        this.hudElement.querySelector('.ship-status .steering-response .value').textContent = `${Math.round(steeringResponse * 100)}%`;
+        
+        const emergencyElement = this.hudElement.querySelector('.ship-status .emergency-status .value');
+        const emergencyStatus = shipStatus.emergencyActive ? 'ACTIVE' : 'READY';
+        emergencyElement.textContent = emergencyStatus;
+        emergencyElement.className = `value ${shipStatus.emergencyActive ? 'active' : 'ready'}`;
         
         this.hudElement.querySelector('.ship-status .damage-assessment .value').textContent = `${Math.round(shipStatus.damage)}%`;
         this.hudElement.querySelector('.ship-status .crew-morale .value').textContent = `${Math.round(shipStatus.crewMorale)}%`;

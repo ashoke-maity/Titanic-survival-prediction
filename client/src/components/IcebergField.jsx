@@ -12,12 +12,191 @@ export class IcebergField {
     generateField() {
         this.clearField();
         
-        for (let i = 0; i < this.icebergCount; i++) {
+        // CREATE THE FATAL ICEBERG - The one that sank the Titanic
+        this.createFatalIceberg();
+        
+        // Add other icebergs around the field
+        for (let i = 0; i < this.icebergCount - 1; i++) {
             const iceberg = this.createIceberg();
             this.positionIceberg(iceberg);
             this.icebergs.push(iceberg);
             this.group.add(iceberg.mesh);
         }
+    }
+
+    createFatalIceberg() {
+        // THE ICEBERG THAT SANK THE TITANIC
+        // Historical data: Estimated 50-100 feet above water, 400 feet total height
+        const fatalSize = 6; // Massive size
+        const fatalType = 'fatal'; // Special type for the deadly iceberg
+        
+        // Create the geometry for the fatal iceberg - much larger and more menacing
+        const geometry = this.createFatalIcebergGeometry(fatalSize);
+        
+        // Special material for the fatal iceberg - darker, more ominous
+        const material = new THREE.MeshLambertMaterial({
+            color: 0x8899bb, // Darker, more menacing blue
+            transparent: true,
+            opacity: 0.95
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // Add dramatic subsurface scattering
+        const innerGeometry = geometry.clone();
+        innerGeometry.scale(0.85, 0.85, 0.85);
+        const innerMaterial = new THREE.MeshLambertMaterial({
+            color: 0x6677aa,
+            transparent: true,
+            opacity: 0.4
+        });
+        const innerMesh = new THREE.Mesh(innerGeometry, innerMaterial);
+        mesh.add(innerMesh);
+        
+        // Add menacing ice crystals and details
+        this.addFatalIcebergDetails(mesh, fatalSize);
+        
+        // Position the fatal iceberg directly in the ship's path
+        // Historical: The iceberg was spotted about 500 meters ahead
+        const fatalIceberg = {
+            mesh,
+            size: fatalSize,
+            type: fatalType,
+            position: new THREE.Vector3(0, -fatalSize * 6, -450), // Directly ahead, 450m away
+            velocity: new THREE.Vector3(0.05, 0, 0.02), // Slight drift like the real iceberg
+            rotationSpeed: 0.0005, // Very slow, ominous rotation
+            boundingBox: new THREE.Box3(),
+            isFatal: true, // Mark this as the historical iceberg
+            historicalData: {
+                estimatedHeight: 100, // feet above water
+                totalHeight: 400, // feet total
+                spottedDistance: 500, // meters when first spotted
+                impactTime: 37 // seconds from spotting to impact
+            }
+        };
+        
+        // Position the mesh
+        fatalIceberg.mesh.position.copy(fatalIceberg.position);
+        fatalIceberg.boundingBox.setFromObject(mesh);
+        
+        // Add warning lights/effects around the fatal iceberg
+        this.addIcebergWarningEffects(mesh, fatalIceberg.position);
+        
+        this.icebergs.push(fatalIceberg);
+        this.group.add(fatalIceberg.mesh);
+        
+        // Store reference to the fatal iceberg
+        this.fatalIceberg = fatalIceberg;
+        
+        console.log("⚠️ FATAL ICEBERG AHEAD! Historical recreation of the Titanic disaster scenario.");
+    }
+
+    createFatalIcebergGeometry(size) {
+        // Create a massive, irregular iceberg based on historical descriptions
+        const geometry = new THREE.ConeGeometry(size * 8, size * 15, 12); // Much larger
+        
+        // Make it extremely irregular and menacing
+        const vertices = geometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            // Create the characteristic "ram" shape that punctured the hull
+            const x = vertices[i];
+            const y = vertices[i + 1];
+            const z = vertices[i + 2];
+            
+            // Add the deadly underwater ram
+            if (y < 0) {
+                vertices[i] += (Math.random() - 0.5) * size * 2;
+                vertices[i + 2] += (Math.random() - 0.5) * size * 2;
+                
+                // Create the sharp underwater protrusion that caused the damage
+                if (y < -size * 3) {
+                    vertices[i] *= 1.5; // Wider underwater section
+                    vertices[i + 2] *= 1.5;
+                }
+            } else {
+                // Visible portion above water
+                vertices[i] += (Math.random() - 0.5) * size * 1.5;
+                vertices[i + 1] += (Math.random() - 0.5) * size * 0.8;
+                vertices[i + 2] += (Math.random() - 0.5) * size * 1.5;
+            }
+        }
+        
+        geometry.attributes.position.needsUpdate = true;
+        geometry.computeVertexNormals();
+        
+        return geometry;
+    }
+
+    addFatalIcebergDetails(mesh, size) {
+        // Add dramatic ice formations and details
+        const detailCount = Math.floor(size * 20);
+        
+        for (let i = 0; i < detailCount; i++) {
+            // Ice spikes and formations
+            const spikeGeometry = new THREE.ConeGeometry(0.5, size * 2, 6);
+            const spikeMaterial = new THREE.MeshLambertMaterial({
+                color: 0xaabbcc,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const spike = new THREE.Mesh(spikeGeometry, spikeMaterial);
+            spike.position.set(
+                (Math.random() - 0.5) * size * 12,
+                (Math.random() - 0.5) * size * 10,
+                (Math.random() - 0.5) * size * 12
+            );
+            spike.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            
+            mesh.add(spike);
+        }
+        
+        // Add the deadly underwater ram that would puncture the hull
+        const ramGeometry = new THREE.BoxGeometry(size * 3, size * 8, size * 2);
+        const ramMaterial = new THREE.MeshLambertMaterial({
+            color: 0x667788,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        const ram = new THREE.Mesh(ramGeometry, ramMaterial);
+        ram.position.set(0, -size * 6, size * 4); // Underwater protrusion
+        ram.rotation.x = Math.PI / 6; // Angled like a ship's ram
+        mesh.add(ram);
+    }
+
+    addIcebergWarningEffects(mesh, position) {
+        // Add subtle warning effects around the fatal iceberg
+        const warningLight = new THREE.PointLight(0xff6600, 0.3, 100);
+        warningLight.position.set(0, 20, 0);
+        mesh.add(warningLight);
+        
+        // Add particle effects for dramatic atmosphere
+        const particleCount = 50;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            particlePositions[i] = (Math.random() - 0.5) * 100;     // x
+            particlePositions[i + 1] = Math.random() * 50;          // y
+            particlePositions[i + 2] = (Math.random() - 0.5) * 100; // z
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.5,
+            transparent: true,
+            opacity: 0.6
+        });
+        
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        mesh.add(particles);
     }
 
     createIceberg() {
