@@ -25,19 +25,23 @@ export class IcebergField {
     }
 
     createFatalIceberg() {
-        // THE ICEBERG THAT SANK THE TITANIC
+        // THE ICEBERG THAT SANK THE TITANIC - MAKE IT DRAMATIC!
         // Historical data: Estimated 50-100 feet above water, 400 feet total height
-        const fatalSize = 6; // Massive size
+        const fatalSize = 12; // MASSIVE size - much bigger than others
         const fatalType = 'fatal'; // Special type for the deadly iceberg
         
         // Create the geometry for the fatal iceberg - much larger and more menacing
         const geometry = this.createFatalIcebergGeometry(fatalSize);
         
-        // Special material for the fatal iceberg - darker, more ominous
-        const material = new THREE.MeshLambertMaterial({
-            color: 0x8899bb, // Darker, more menacing blue
+        // Special dramatic material for the fatal iceberg
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x6688aa, // Darker, more menacing blue
             transparent: true,
-            opacity: 0.95
+            opacity: 0.98,
+            shininess: 100,
+            specular: 0x4466aa,
+            emissive: 0x001122, // Slight glow effect
+            emissiveIntensity: 0.1
         });
         
         const mesh = new THREE.Mesh(geometry, material);
@@ -79,8 +83,8 @@ export class IcebergField {
         fatalIceberg.mesh.position.copy(fatalIceberg.position);
         fatalIceberg.boundingBox.setFromObject(mesh);
         
-        // Add warning lights/effects around the fatal iceberg
-        this.addIcebergWarningEffects(mesh, fatalIceberg.position);
+        // Add dramatic warning lights/effects around the fatal iceberg
+        this.addDramaticIcebergEffects(mesh, fatalIceberg.position);
         
         this.icebergs.push(fatalIceberg);
         this.group.add(fatalIceberg.mesh);
@@ -169,34 +173,106 @@ export class IcebergField {
         mesh.add(ram);
     }
 
-    addIcebergWarningEffects(mesh, position) {
-        // Add subtle warning effects around the fatal iceberg
-        const warningLight = new THREE.PointLight(0xff6600, 0.3, 100);
-        warningLight.position.set(0, 20, 0);
-        mesh.add(warningLight);
+    addDramaticIcebergEffects(mesh, position) {
+        // DRAMATIC LIGHTING EFFECTS TO MAKE IT POP OUT!
         
-        // Add particle effects for dramatic atmosphere
-        const particleCount = 50;
+        // 1. Bright warning spotlight from above
+        const spotLight = new THREE.SpotLight(0xff4444, 2.0, 200, Math.PI / 4, 0.5);
+        spotLight.position.set(0, 100, 0);
+        spotLight.target.position.set(0, 0, 0);
+        spotLight.castShadow = true;
+        mesh.add(spotLight);
+        mesh.add(spotLight.target);
+        
+        // 2. Ominous red glow around the base
+        const glowLight = new THREE.PointLight(0xff2222, 1.5, 150);
+        glowLight.position.set(0, -20, 0);
+        mesh.add(glowLight);
+        
+        // 3. Blue ice glow on top
+        const iceGlow = new THREE.PointLight(0x4488ff, 1.0, 100);
+        iceGlow.position.set(0, 50, 0);
+        mesh.add(iceGlow);
+        
+        // 4. Dramatic particle effects - much more visible
+        const particleCount = 200; // More particles
         const particleGeometry = new THREE.BufferGeometry();
         const particlePositions = new Float32Array(particleCount * 3);
+        const particleColors = new Float32Array(particleCount * 3);
         
-        for (let i = 0; i < particleCount * 3; i += 3) {
-            particlePositions[i] = (Math.random() - 0.5) * 100;     // x
-            particlePositions[i + 1] = Math.random() * 50;          // y
-            particlePositions[i + 2] = (Math.random() - 0.5) * 100; // z
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            
+            // Position particles around the iceberg
+            particlePositions[i3] = (Math.random() - 0.5) * 150;     // x
+            particlePositions[i3 + 1] = Math.random() * 100 - 20;    // y
+            particlePositions[i3 + 2] = (Math.random() - 0.5) * 150; // z
+            
+            // Mix of red warning and white ice particles
+            if (Math.random() > 0.7) {
+                // Red warning particles
+                particleColors[i3] = 1.0;     // r
+                particleColors[i3 + 1] = 0.2; // g
+                particleColors[i3 + 2] = 0.2; // b
+            } else {
+                // White ice particles
+                particleColors[i3] = 1.0;     // r
+                particleColors[i3 + 1] = 1.0; // g
+                particleColors[i3 + 2] = 1.0; // b
+            }
         }
         
         particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
         
         const particleMaterial = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 0.5,
+            size: 2.0, // Bigger particles
             transparent: true,
-            opacity: 0.6
+            opacity: 0.8,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending
         });
         
         const particles = new THREE.Points(particleGeometry, particleMaterial);
         mesh.add(particles);
+        
+        // 5. Glowing outline effect
+        const outlineGeometry = mesh.geometry.clone();
+        const outlineMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff4444,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.BackSide
+        });
+        const outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
+        outline.scale.multiplyScalar(1.05); // Slightly larger
+        mesh.add(outline);
+        
+        // 6. Pulsing danger beacon on top
+        const beaconGeometry = new THREE.SphereGeometry(2, 8, 8);
+        const beaconMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.8,
+            emissive: 0xff0000,
+            emissiveIntensity: 0.5
+        });
+        const beacon = new THREE.Mesh(beaconGeometry, beaconMaterial);
+        beacon.position.set(0, 60, 0);
+        mesh.add(beacon);
+        
+        // Store references for animation
+        mesh.userData = {
+            spotLight,
+            glowLight,
+            iceGlow,
+            particles,
+            beacon,
+            beaconMaterial,
+            time: 0
+        };
+        
+        console.log("🚨 DRAMATIC FATAL ICEBERG CREATED - Should be highly visible now!");
     }
 
     createIceberg() {
@@ -357,9 +433,71 @@ export class IcebergField {
             // Subtle rotation
             iceberg.mesh.rotation.y += iceberg.rotationSpeed;
             
+            // SPECIAL ANIMATION FOR FATAL ICEBERG
+            if (iceberg.isFatal && iceberg.mesh.userData) {
+                this.animateFatalIceberg(iceberg, deltaTime);
+            }
+            
             // Update bounding box
             iceberg.boundingBox.setFromObject(iceberg.mesh);
         });
+    }
+
+    animateFatalIceberg(fatalIceberg, deltaTime) {
+        const userData = fatalIceberg.mesh.userData;
+        userData.time += deltaTime;
+        
+        // 1. Pulsing beacon effect
+        if (userData.beacon && userData.beaconMaterial) {
+            const pulse = Math.sin(userData.time * 4) * 0.5 + 0.5;
+            userData.beaconMaterial.opacity = 0.5 + pulse * 0.5;
+            userData.beaconMaterial.emissiveIntensity = 0.3 + pulse * 0.7;
+            
+            // Make beacon bob up and down
+            userData.beacon.position.y = 60 + Math.sin(userData.time * 2) * 3;
+        }
+        
+        // 2. Pulsing warning lights
+        if (userData.spotLight) {
+            const lightPulse = Math.sin(userData.time * 3) * 0.3 + 0.7;
+            userData.spotLight.intensity = 1.5 + lightPulse;
+        }
+        
+        if (userData.glowLight) {
+            const glowPulse = Math.sin(userData.time * 2.5) * 0.5 + 0.5;
+            userData.glowLight.intensity = 1.0 + glowPulse;
+        }
+        
+        if (userData.iceGlow) {
+            const icePulse = Math.sin(userData.time * 1.8) * 0.3 + 0.7;
+            userData.iceGlow.intensity = 0.8 + icePulse;
+        }
+        
+        // 3. Rotating particle effects
+        if (userData.particles) {
+            userData.particles.rotation.y += deltaTime * 0.5;
+            userData.particles.rotation.x += deltaTime * 0.2;
+            
+            // Animate particle positions for swirling effect
+            const positions = userData.particles.geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                const angle = userData.time * 0.5 + i * 0.01;
+                const radius = 50 + Math.sin(userData.time + i * 0.1) * 20;
+                
+                positions[i] += Math.sin(angle) * 0.1;     // x
+                positions[i + 1] += Math.cos(userData.time * 2 + i * 0.05) * 0.2; // y
+                positions[i + 2] += Math.cos(angle) * 0.1; // z
+            }
+            userData.particles.geometry.attributes.position.needsUpdate = true;
+        }
+        
+        // 4. Dramatic iceberg bobbing motion
+        const bobbing = Math.sin(userData.time * 0.8) * 2;
+        fatalIceberg.mesh.position.y = fatalIceberg.position.y + bobbing;
+        
+        // 5. Ominous slow rotation
+        fatalIceberg.mesh.rotation.y += deltaTime * 0.1;
+        fatalIceberg.mesh.rotation.z = Math.sin(userData.time * 0.5) * 0.05; // Slight tilt
     }
 
     checkCollisionWithShip(shipPosition, shipBoundingBox) {

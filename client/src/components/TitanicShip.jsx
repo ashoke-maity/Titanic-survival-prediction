@@ -1,14 +1,15 @@
 import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 
 export class TitanicShip {
     constructor() {
         this.group = new THREE.Group();
         this.position = new THREE.Vector3(0, 0, 0);
-        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.velocity = new THREE.Vector3(0, 0, -9); // Initialize with stronger forward velocity (half of max speed)
         this.rotation = 0;
-        this.speed = 0;
-        this.maxSpeed = 20;
-        this.acceleration = 5;
+        this.speed = 18; // Fixed speed - cannot be changed
+        this.maxSpeed = 18; // Fixed maximum speed
+        this.acceleration = 0; // No acceleration allowed
         
         // REALISTIC TITANIC STEERING MECHANICS
         this.baseTurnSpeed = 0.3; // Much slower base turning
@@ -43,8 +44,222 @@ export class TitanicShip {
         this.historicalSpeed = 22.5; // knots - Titanic's speed when it hit the iceberg
         this.timeToReact = 37; // seconds - actual time from iceberg spotting to impact
         
-        this.createShip();
+        this.loadTitanicModel();
         this.createLights();
+    }
+
+    loadTitanicModel() {
+        const loader = new OBJLoader();
+        const textureLoader = new THREE.TextureLoader();
+        
+        // Load your custom Titanic texture first
+        console.log('🎨 Loading Titanic texture...');
+        textureLoader.load(
+            '/penup_20230701_205028.jpeg',
+            (texture) => {
+                console.log('✅ Titanic texture loaded successfully!');
+                
+                // Configure texture settings for best appearance
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.flipY = false; // Important for OBJ models
+                
+                // Now load the 3D model with the texture
+                loader.load(
+                    '/Titanic textured (8).obj',
+                    (object) => {
+                        console.log('✅ Titanic 3D model loaded successfully!');
+                        
+                        // Scale the model to MASSIVE size - Make it impressive!
+                        object.scale.set(0.2, 0.2, 0.2); // Much bigger scale for dramatic presence
+                        
+                        // Position the model at the origin of the group (it will move with the group)
+                        object.position.set(0, 0, 0); // Position at group origin
+                        
+                        // Rotate the model to face forward (bow pointing toward -Z)
+                        object.rotation.x = 0;
+                        object.rotation.y = -Math.PI / 2; // -90 degrees rotation
+                        object.rotation.z = 0;
+                        
+                        // Store reference for easy rotation adjustment
+                        window.titanicModel = object; // Access via browser console
+                        
+                        console.log('🔧 Titanic model rotation controls:');
+                        console.log('   titanicModel.rotation.y = 0        (no rotation)');
+                        console.log('   titanicModel.rotation.y = Math.PI/2  (90° right)');
+                        console.log('   titanicModel.rotation.y = Math.PI    (180° back)');
+                        console.log('   titanicModel.rotation.y = -Math.PI/2 (90° left)');
+                        console.log('🎮 Use browser console to adjust rotation in real-time!');
+                        
+                        // DEBUG: Log all mesh parts to understand the structure
+                        console.log('🔍 Analyzing Titanic model structure:');
+                        let meshCount = 0;
+                        
+                        // Apply colors: BLACK body, YELLOW exhaust pipes, BLACK pipe tops
+                        object.traverse((child) => {
+                            if (child.isMesh) {
+                                meshCount++;
+                                const boundingBox = new THREE.Box3().setFromObject(child);
+                                const size = boundingBox.getSize(new THREE.Vector3());
+                                const center = boundingBox.getCenter(new THREE.Vector3());
+                                
+                                console.log(`Mesh ${meshCount}:`, {
+                                    name: child.name || 'unnamed',
+                                    position: center,
+                                    size: size,
+                                    vertices: child.geometry.attributes.position?.count || 0,
+                                    faces: child.geometry.index ? child.geometry.index.count / 3 : 'no index'
+                                });
+                                
+                                // Use the already calculated boundingBox, size, and center for material assignment
+                                
+                                let material;
+                                
+                                // Check if it's an exhaust pipe/funnel (tall, cylindrical objects)
+                                if (size.y > size.x && size.y > size.z && center.y > 0 && size.y > 10) {
+                                    // This is likely a funnel/exhaust pipe
+                                    
+                                    if (center.y > size.y * 0.7) {
+                                        // Top part of pipe - BLACK
+                                        material = new THREE.MeshPhongMaterial({
+                                            color: 0x000000, // Black pipe tops
+                                            shininess: 30,
+                                            specular: 0x444444,
+                                            emissive: 0x111111,
+                                            emissiveIntensity: 0.05
+                                        });
+                                        console.log('🖤 Applied BLACK to pipe top');
+                                    } else {
+                                        // Main pipe body - YELLOW (from your texture colors)
+                                        material = new THREE.MeshPhongMaterial({
+                                            color: 0xffcc33, // Yellow exhaust pipes (golden yellow from typical Titanic colors)
+                                            shininess: 40,
+                                            specular: 0x666633,
+                                            emissive: 0x332211,
+                                            emissiveIntensity: 0.08
+                                        });
+                                        console.log('💛 Applied YELLOW to exhaust pipe');
+                                    }
+                                }
+                                // Everything else - BLACK BODY
+                                else {
+                                    // BLACK hull/body
+                                    material = new THREE.MeshPhongMaterial({
+                                        color: 0x1a1a1a, // BLACK side body
+                                        shininess: 25,
+                                        specular: 0x333333,
+                                        emissive: 0x111111,
+                                        emissiveIntensity: 0.05
+                                    });
+                                }
+                                
+                                child.material = material;
+                                
+                                // FIX COMMON OBJ ISSUES
+                                
+                                // 1. Fix face orientation (normals)
+                                if (child.geometry.attributes.normal) {
+                                    child.geometry.computeVertexNormals();
+                                }
+                                
+                                // 2. Ensure double-sided rendering for hollow parts
+                                child.material.side = THREE.DoubleSide;
+                                
+                                // 3. Force geometry update
+                                child.geometry.computeBoundingBox();
+                                child.geometry.computeBoundingSphere();
+                                
+                                // 4. Make sure it's visible
+                                child.visible = true;
+                                child.frustumCulled = false; // Prevent culling issues
+                                
+                                // Enable shadows
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                
+                                console.log(`✅ Applied material and fixes to mesh ${meshCount}`);
+                            }
+                        });
+                        
+                        // Add the loaded model to the ship group
+                        this.group.add(object);
+                        this.titanicModel = object;
+                        
+                        // Update bounding box after model is loaded
+                        this.updateBoundingBox();
+                        
+                        console.log('🚢 Your custom textured Titanic model is now in the game!');
+                        console.log('🎨 Custom texture applied successfully!');
+                    },
+                    (progress) => {
+                        console.log('Loading Titanic model...', (progress.loaded / progress.total * 100) + '%');
+                    },
+                    (error) => {
+                        console.error('❌ Error loading Titanic model:', error);
+                        console.log('🔄 Falling back to procedural ship...');
+                        // Fallback to procedural ship if model fails to load
+                        this.createShip();
+                    }
+                );
+            },
+            (progress) => {
+                console.log('Loading texture...', (progress.loaded / progress.total * 100) + '%');
+            },
+            (error) => {
+                console.error('❌ Error loading Titanic texture:', error);
+                console.log('🔄 Loading model without custom texture...');
+                
+                // Fallback: Load model without texture
+                this.loadModelWithoutTexture();
+            }
+        );
+    }
+
+    loadModelWithoutTexture() {
+        const loader = new OBJLoader();
+        
+        // Load model with default material if texture fails
+        loader.load(
+            '/Titanic textured (8).obj',
+            (object) => {
+                console.log('✅ Titanic 3D model loaded (without custom texture)');
+                
+                object.scale.set(0.2, 0.2, 0.2);
+                object.position.set(0, 2, 0);
+                object.rotation.x = 0;
+                object.rotation.y = -Math.PI / 2;
+                object.rotation.z = 0;
+                
+                window.titanicModel = object;
+                
+                // Apply default enhanced material
+                object.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material = new THREE.MeshPhongMaterial({
+                            color: 0x666666,
+                            shininess: 50,
+                            specular: 0x444444,
+                            emissive: 0x111111,
+                            emissiveIntensity: 0.1
+                        });
+                        
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                this.group.add(object);
+                this.titanicModel = object;
+                this.updateBoundingBox();
+                
+                console.log('🚢 Titanic model loaded with default material');
+            },
+            undefined,
+            (error) => {
+                console.error('❌ Error loading Titanic model:', error);
+                this.createShip();
+            }
+        );
     }
 
     createShip() {
@@ -156,6 +371,9 @@ export class TitanicShip {
             return;
         }
 
+        // AUTOMATIC FORWARD MOVEMENT - Ship always moves forward
+        this.automaticForwardMovement(deltaTime);
+
         // Update realistic steering system
         this.updateSteering(deltaTime);
         
@@ -166,7 +384,61 @@ export class TitanicShip {
         this.group.position.copy(this.position);
         this.group.rotation.y = this.rotation;
         
+        // FORCE UPDATE THE 3D MODEL POSITION (for loaded OBJ models)
+        if (this.titanicModel) {
+            // Don't copy position since the model is already a child of the group
+            // Just update the rotation relative to the group
+            this.titanicModel.rotation.y = -Math.PI / 2; // Keep the model's local rotation
+        }
+        
+        // DETAILED DEBUG - Check if model is moving
+        console.log('🚢 POSITION UPDATE:', { 
+            position: this.position.clone(), 
+            rotation: this.rotation,
+            groupPos: this.group.position.clone(),
+            groupChildren: this.group.children.length,
+            modelExists: !!this.titanicModel,
+            modelPos: this.titanicModel ? this.titanicModel.position.clone() : 'no model',
+            modelVisible: this.titanicModel ? this.titanicModel.visible : 'no model'
+        });
+        
+        // FORCE MODEL TO FOLLOW GROUP POSITION
+        if (this.titanicModel) {
+            // Make sure the model is visible and positioned correctly
+            this.titanicModel.visible = true;
+            
+            // KEEP MODEL AT ORIGIN WITHIN GROUP (it moves with the group)
+            this.titanicModel.position.set(0, 0, 0);
+            
+            console.log('🚢 MODEL UPDATE:', {
+                modelLocalPos: this.titanicModel.position.clone(),
+                groupPos: this.group.position.clone(),
+                shipPos: this.position.clone(),
+                modelWorldPos: new THREE.Vector3().setFromMatrixPosition(this.titanicModel.matrixWorld)
+            });
+        }
+        
         this.updateBoundingBox();
+    }
+
+    automaticForwardMovement(deltaTime) {
+        // DRAMATIC MOVEMENT TEST - Make it impossible to miss
+        const targetSpeed = 100; // Super fast movement
+        
+        // Set speed immediately for instant movement
+        this.speed = targetSpeed;
+        
+        // DRAMATIC POSITION CHANGES FOR TESTING
+        const time = Date.now() * 0.001;
+        this.position.x = Math.sin(time) * 20; // Big side-to-side movement
+        this.position.z -= 2; // Fast forward movement
+        
+        console.log('🚢 DRAMATIC MOVEMENT TEST:', { 
+            speed: this.speed, 
+            position: this.position.clone(),
+            time: time,
+            deltaTime: deltaTime
+        });
     }
 
     updateSteering(deltaTime) {
@@ -208,26 +480,28 @@ export class TitanicShip {
     }
 
     updatePhysics(deltaTime) {
-        // Historical Titanic physics
+        // Historical Titanic physics - FIXED VERSION
         const direction = new THREE.Vector3(0, 0, -1);
         direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation);
         
-        // Apply forward momentum
-        const forwardForce = direction.clone().multiplyScalar(this.speed * deltaTime);
-        this.velocity.add(forwardForce);
+        // DIRECT POSITION UPDATE - Move ship forward based on speed and direction
+        const movementDistance = this.speed * deltaTime;
+        const movement = direction.clone().multiplyScalar(movementDistance);
         
-        // Water resistance (more realistic for a massive ship)
-        const resistance = 0.02 + (this.speed / this.maxSpeed) * 0.03;
-        this.velocity.multiplyScalar(1 - resistance);
+        // Apply movement directly to position
+        this.position.add(movement);
         
-        // Apply velocity to position
-        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+        // Update velocity for other systems that might need it
+        this.velocity = direction.clone().multiplyScalar(this.speed);
         
-        // Limit maximum velocity based on ship's mass and power
-        const maxVelocity = this.maxSpeed * 0.5;
-        if (this.velocity.length() > maxVelocity) {
-            this.velocity.normalize().multiplyScalar(maxVelocity);
-        }
+        // Debug log to verify ship movement
+        console.log('🚢 PHYSICS UPDATE:', { 
+            speed: this.speed,
+            movementDistance: movementDistance,
+            direction: direction,
+            newPosition: this.position.clone(),
+            velocity: this.velocity.clone()
+        });
     }
 
     accelerate(amount) {
@@ -239,6 +513,8 @@ export class TitanicShip {
         direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation);
         
         this.velocity.add(direction.multiplyScalar(amount * 0.1));
+        
+        console.log('🚢 ACCELERATE:', { speed: this.speed, position: this.position, velocity: this.velocity });
     }
 
     decelerate(amount) {
@@ -246,6 +522,8 @@ export class TitanicShip {
         
         this.speed = Math.max(0, this.speed - amount);
         this.velocity.multiplyScalar(0.9);
+        
+        console.log('🚢 DECELERATE:', { speed: this.speed, position: this.position, velocity: this.velocity });
     }
 
     turnLeft(amount) {
@@ -253,6 +531,8 @@ export class TitanicShip {
         
         // Set steering input for realistic steering system
         this.steeringInput = Math.max(-1, this.steeringInput - amount * 0.5);
+        
+        console.log('🚢 TURN LEFT:', { steeringInput: this.steeringInput, rotation: this.rotation });
     }
 
     turnRight(amount) {
@@ -260,6 +540,8 @@ export class TitanicShip {
         
         // Set steering input for realistic steering system
         this.steeringInput = Math.min(1, this.steeringInput + amount * 0.5);
+        
+        console.log('🚢 TURN RIGHT:', { steeringInput: this.steeringInput, rotation: this.rotation });
     }
 
     // Emergency maneuver - can be activated when iceberg is spotted
@@ -352,7 +634,7 @@ export class TitanicShip {
         this.position.set(0, 0, 0);
         this.velocity.set(0, 0, 0);
         this.rotation = 0;
-        this.speed = 0;
+        this.speed = 18; // Initialize with full speed instead of 0
         this.damage = 0;
         this.engineStatus = 'running';
         this.crewMorale = 100;
@@ -360,5 +642,11 @@ export class TitanicShip {
         
         this.group.position.copy(this.position);
         this.group.rotation.set(0, 0, 0);
+        
+        // Initialize velocity with a stronger forward momentum
+        // Use a direct approach with a fixed value for more reliable movement
+        this.velocity.set(0, 0, -9); // Set to half of max speed (18) directly on Z-axis
+        
+        console.log('🚢 Ship reset with velocity:', this.velocity);
     }
 }

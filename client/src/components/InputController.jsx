@@ -2,31 +2,15 @@ export class InputController {
     constructor(ship) {
         this.ship = ship;
         this.keys = {};
-        this.mouseDown = false;
-        this.lastMouseX = 0;
-        this.lastMouseY = 0;
         this.enabled = false;
         
         this.bindEvents();
     }
 
     bindEvents() {
-        // Keyboard events
+        // Keyboard events - only AD keys for steering
         document.addEventListener('keydown', this.onKeyDown.bind(this));
         document.addEventListener('keyup', this.onKeyUp.bind(this));
-        
-        // Mouse events for ship dragging
-        document.addEventListener('mousedown', this.onMouseDown.bind(this));
-        document.addEventListener('mousemove', this.onMouseMove.bind(this));
-        document.addEventListener('mouseup', this.onMouseUp.bind(this));
-        
-        // Touch events for mobile
-        document.addEventListener('touchstart', this.onTouchStart.bind(this));
-        document.addEventListener('touchmove', this.onTouchMove.bind(this));
-        document.addEventListener('touchend', this.onTouchEnd.bind(this));
-        
-        // Prevent context menu on right click
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
         
         // Start input processing loop
         this.inputLoop();
@@ -37,8 +21,8 @@ export class InputController {
         
         this.keys[event.code] = true;
         
-        // Prevent default behavior for game keys
-        const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
+        // Prevent default behavior for game keys - only A and D
+        const gameKeys = ['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight'];
         if (gameKeys.includes(event.code)) {
             event.preventDefault();
         }
@@ -50,100 +34,7 @@ export class InputController {
         this.keys[event.code] = false;
     }
 
-    onMouseDown(event) {
-        if (!this.enabled) return;
-        
-        this.mouseDown = true;
-        this.lastMouseX = event.clientX;
-        this.lastMouseY = event.clientY;
-    }
-
-    onMouseMove(event) {
-        if (!this.enabled || !this.mouseDown) return;
-        
-        const deltaX = event.clientX - this.lastMouseX;
-        const deltaY = event.clientY - this.lastMouseY;
-        
-        // Use mouse movement for ship steering
-        if (Math.abs(deltaX) > 2) {
-            if (deltaX > 0) {
-                this.ship.turnRight(Math.abs(deltaX) * 0.1);
-            } else {
-                this.ship.turnLeft(Math.abs(deltaX) * 0.1);
-            }
-        }
-        
-        // Use vertical mouse movement for speed control
-        if (Math.abs(deltaY) > 2) {
-            if (deltaY < 0) {
-                this.ship.accelerate(Math.abs(deltaY) * 0.05);
-            } else {
-                this.ship.decelerate(Math.abs(deltaY) * 0.05);
-            }
-        }
-        
-        this.lastMouseX = event.clientX;
-        this.lastMouseY = event.clientY;
-    }
-
-    onMouseUp(event) {
-        if (!this.enabled) return;
-        
-        this.mouseDown = false;
-    }
-
-    onTouchStart(event) {
-        if (!this.enabled) return;
-        
-        event.preventDefault();
-        
-        if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            this.mouseDown = true;
-            this.lastMouseX = touch.clientX;
-            this.lastMouseY = touch.clientY;
-        }
-    }
-
-    onTouchMove(event) {
-        if (!this.enabled || !this.mouseDown) return;
-        
-        event.preventDefault();
-        
-        if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            const deltaX = touch.clientX - this.lastMouseX;
-            const deltaY = touch.clientY - this.lastMouseY;
-            
-            // Touch steering - more sensitive for mobile
-            if (Math.abs(deltaX) > 1) {
-                if (deltaX > 0) {
-                    this.ship.turnRight(Math.abs(deltaX) * 0.15);
-                } else {
-                    this.ship.turnLeft(Math.abs(deltaX) * 0.15);
-                }
-            }
-            
-            // Touch speed control
-            if (Math.abs(deltaY) > 1) {
-                if (deltaY < 0) {
-                    this.ship.accelerate(Math.abs(deltaY) * 0.08);
-                } else {
-                    this.ship.decelerate(Math.abs(deltaY) * 0.08);
-                }
-            }
-            
-            this.lastMouseX = touch.clientX;
-            this.lastMouseY = touch.clientY;
-        }
-    }
-
-    onTouchEnd(event) {
-        if (!this.enabled) return;
-        
-        event.preventDefault();
-        this.mouseDown = false;
-    }
+    // Mouse and touch controls removed - only keyboard steering with A and D keys
 
     inputLoop() {
         if (this.enabled && this.ship) {
@@ -154,30 +45,22 @@ export class InputController {
     }
 
     processKeyboardInput() {
-        // REALISTIC TITANIC STEERING - Much more challenging and historically accurate
-        const accelerationAmount = 0.8; // Slower acceleration for realism
-        const baseTurnAmount = 0.6; // Much slower base turning
+        // SIMPLIFIED TITANIC STEERING - Only left/right with A/D keys
+        const baseTurnAmount = 0.6; // Base turning speed
         
         // Get steering responsiveness based on ship's current state
         const steeringResponsiveness = this.ship.getSteeringResponsiveness ? 
             this.ship.getSteeringResponsiveness() : 1;
         const finalTurnAmount = baseTurnAmount * steeringResponsiveness;
         
-        // Forward/Backward movement
-        if (this.keys['KeyW'] || this.keys['ArrowUp']) {
-            this.ship.accelerate(accelerationAmount);
-        }
-        
-        if (this.keys['KeyS'] || this.keys['ArrowDown']) {
-            this.ship.decelerate(accelerationAmount);
-        }
-        
-        // Realistic steering with momentum and delay
+        // Simplified steering with only A/D keys
         let steeringInput = 0;
         if (this.keys['KeyA'] || this.keys['ArrowLeft']) {
+            console.log('🎮 A/LEFT pressed - TURNING LEFT!');
             steeringInput -= finalTurnAmount;
         }
         if (this.keys['KeyD'] || this.keys['ArrowRight']) {
+            console.log('🎮 D/RIGHT pressed - TURNING RIGHT!');
             steeringInput += finalTurnAmount;
         }
         
@@ -301,7 +184,16 @@ export class InputController {
 
     enable() {
         this.enabled = true;
-        this.showControlsHint();
+        // Controls hint removed - game starts without showing controls
+        console.log('🎮 InputController ENABLED - WASD controls are now active!');
+    }
+
+    // Add update method that GameManager expects
+    update(deltaTime) {
+        // The input processing is handled by inputLoop, but we can add debug info here
+        if (this.enabled && Object.keys(this.keys).some(key => this.keys[key])) {
+            console.log('🎮 Keys pressed:', Object.keys(this.keys).filter(key => this.keys[key]));
+        }
     }
 
     disable() {

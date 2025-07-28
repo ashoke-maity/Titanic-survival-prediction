@@ -178,15 +178,7 @@
 .risk-level.danger { background: #ff6600; }
 .risk-level.critical { background: #ff0000; }
 
-.countdown-timer {
-    margin: 15px 0;
-}
-
-.timer {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #ff6600;
-}
+/* Countdown timer styles removed */
 
 .recommendations {
     margin-top: 15px;

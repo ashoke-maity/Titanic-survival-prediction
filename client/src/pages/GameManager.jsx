@@ -54,17 +54,41 @@ export class GameManager {
   }
 
   setupLighting() {
-    // Ambient moonlight
-    const ambientLight = new THREE.AmbientLight(0x404080, 0.3);
+    // ENHANCED LIGHTING FOR TITANIC MODEL VISIBILITY
+    
+    // Brighter ambient light to prevent blackness
+    const ambientLight = new THREE.AmbientLight(0x6688aa, 0.6); // Increased intensity
     this.scene.add(ambientLight);
 
-    // Moonlight
-    const moonLight = new THREE.DirectionalLight(0x8888ff, 0.8);
+    // Main moonlight (directional)
+    const moonLight = new THREE.DirectionalLight(0xaabbff, 1.2); // Brighter moonlight
     moonLight.position.set(100, 200, 100);
     moonLight.castShadow = true;
     moonLight.shadow.mapSize.width = 2048;
     moonLight.shadow.mapSize.height = 2048;
+    moonLight.shadow.camera.near = 0.1;
+    moonLight.shadow.camera.far = 1000;
+    moonLight.shadow.camera.left = -200;
+    moonLight.shadow.camera.right = 200;
+    moonLight.shadow.camera.top = 200;
+    moonLight.shadow.camera.bottom = -200;
     this.scene.add(moonLight);
+    
+    // Additional fill light from the opposite side
+    const fillLight = new THREE.DirectionalLight(0x4466aa, 0.4);
+    fillLight.position.set(-100, 150, -100);
+    this.scene.add(fillLight);
+    
+    // Hemisphere light for natural sky/ground lighting
+    const hemisphereLight = new THREE.HemisphereLight(0x8899bb, 0x223344, 0.4);
+    this.scene.add(hemisphereLight);
+    
+    // Point light following the ship for better visibility
+    this.shipLight = new THREE.PointLight(0xffffff, 0.8, 100);
+    this.shipLight.position.set(0, 30, 20); // Above and slightly behind ship
+    this.scene.add(this.shipLight);
+    
+    console.log("🌟 Enhanced lighting setup complete - Titanic should be clearly visible!");
   }
 
   setupCamera() {
@@ -74,7 +98,7 @@ export class GameManager {
       0.1,
       3000
     );
-    this.camera.position.set(0, 50, 100);
+    this.camera.position.set(0, 30, 80); // Lower camera to see waves better
   }
 
   setupRenderer() {
@@ -90,7 +114,24 @@ export class GameManager {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    this.controls.maxPolarAngle = Math.PI / 2;
+
+    // LOCK CAMERA MOVEMENT - Prevent backside view
+    this.controls.maxPolarAngle = Math.PI / 2.2; // Prevent going too low
+    this.controls.minPolarAngle = Math.PI / 6; // Prevent going too high
+
+    // Restrict horizontal rotation to front and sides only
+    this.controls.minAzimuthAngle = -Math.PI / 2; // Left side limit
+    this.controls.maxAzimuthAngle = Math.PI / 2; // Right side limit
+
+    // Limit zoom distance
+    this.controls.minDistance = 30; // Don't get too close
+    this.controls.maxDistance = 200; // Don't get too far
+
+    // Disable panning to keep focus on ship
+    this.controls.enablePan = false;
+
+    // Set initial camera position for best view
+    this.controls.target.set(0, 0, 0); // Look at ship center
   }
 
   createGameObjects() {
@@ -124,8 +165,8 @@ export class GameManager {
     window.addEventListener("resize", this.onWindowResize.bind(this));
 
     // Game UI event listeners
-    document.addEventListener("startGame", (e) => {
-      this.startGame(e.detail.difficulty);
+    document.addEventListener("startGame", () => {
+      this.startGame();
     });
 
     document.addEventListener("restartGame", () => {
@@ -138,116 +179,40 @@ export class GameManager {
     this.gameState = "menu";
   }
 
-  startGame(difficulty = "Calm Seas") {
-    this.difficulty = difficulty;
+  startGame() {
     this.gameState = "playing";
     this.gameTime = 0;
     this.survivalRate = 100;
 
-    // Set ship to historical Titanic speed and position
-    this.ship.speed = 18; // Close to historical 22.5 knots
+    // Set ship to fixed position
     this.ship.position.set(0, 0, 0); // Starting position
+    
+    // Set initial ship speed to make it move forward
+    this.ship.speed = 18; // Set to max speed (18) as defined in TitanicShip constructor
+    
+    // Force reset velocity to ensure clean state
+    this.ship.velocity.set(0, 0, 0);
+    
+    // Initialize ship velocity with a stronger forward momentum
+    const direction = new THREE.Vector3(0, 0, -1);
+    direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.ship.rotation);
+    this.ship.velocity.copy(direction.multiplyScalar(this.ship.speed * 0.5)); // Increased multiplier from 0.1 to 0.5
+
+    console.log('🚢 Starting game with ship velocity:', this.ship.velocity);
 
     this.gameUI.hideStartScreen();
     this.gameUI.showGameHUD();
     this.audioManager.playBackgroundMusic();
     this.inputController.enable();
 
-    // Show dramatic historical context message
-    this.showHistoricalScenario();
-
     // Start the countdown to disaster
     this.startDisasterCountdown();
   }
 
-  showHistoricalScenario() {
-    const scenarioMessage = document.createElement("div");
-    scenarioMessage.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        font-family: 'Times New Roman', serif;
-        color: #ffffff;
-        z-index: 2000;
-        text-align: center;
-    `;
-
-    scenarioMessage.innerHTML = `
-        <div style="max-width: 800px; padding: 40px;">
-            <h1 style="color: #ff6666; font-size: 3rem; margin-bottom: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-                ⚠️ HISTORICAL SCENARIO ⚠️
-            </h1>
-            <div style="font-size: 1.5rem; line-height: 1.8; margin-bottom: 2rem;">
-                <p><strong>April 14, 1912 - 11:40 PM</strong></p>
-                <p>North Atlantic Ocean</p>
-                <p style="color: #ffd700;">You are now the officer in command of RMS Titanic</p>
-            </div>
-            <div style="background: rgba(255, 0, 0, 0.2); padding: 20px; border-radius: 10px; margin-bottom: 2rem;">
-                <h3 style="color: #ff6666; margin-bottom: 1rem;">THE CHALLENGE</h3>
-                <p style="font-size: 1.2rem;">A massive iceberg has been spotted directly ahead!</p>
-                <p style="font-size: 1.2rem;">You have approximately <strong>37 seconds</strong> to avoid disaster.</p>
-                <p style="font-size: 1.2rem;">The ship is traveling at <strong>22.5 knots</strong> - nearly full speed.</p>
-            </div>
-            <div style="background: rgba(255, 215, 0, 0.2); padding: 20px; border-radius: 10px; margin-bottom: 2rem;">
-                <h3 style="color: #ffd700; margin-bottom: 1rem;">YOUR MISSION</h3>
-                <p>Use your naval expertise to save the 2,224 souls aboard.</p>
-                <p>Remember: The ship is massive (52,310 tons) and takes time to respond.</p>
-                <p><strong>Can you change history?</strong></p>
-            </div>
-            <div style="font-size: 1.1rem; color: #cccccc;">
-                <p>Press any key to begin the historical recreation...</p>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(scenarioMessage);
-
-    // Remove on any key press
-    const removeScenario = () => {
-      if (scenarioMessage.parentNode) {
-        scenarioMessage.parentNode.removeChild(scenarioMessage);
-      }
-      document.removeEventListener("keydown", removeScenario);
-    };
-
-    document.addEventListener("keydown", removeScenario);
-
-    // Auto-remove after 10 seconds
-    setTimeout(removeScenario, 10000);
-  }
+  // showGameInstructions method removed - game starts immediately
 
   startDisasterCountdown() {
-    // Create countdown overlay
-    this.countdownElement = document.createElement("div");
-    this.countdownElement.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 0, 0, 0.9);
-        color: white;
-        padding: 20px 40px;
-        border: 3px solid #fff;
-        border-radius: 15px;
-        font-family: 'Times New Roman', serif;
-        font-size: 2rem;
-        font-weight: bold;
-        text-align: center;
-        z-index: 1500;
-        box-shadow: 0 0 30px rgba(255, 0, 0, 0.7);
-        display: none;
-    `;
-
-    document.body.appendChild(this.countdownElement);
-
-    // Start checking distance to fatal iceberg
+    // We're removing the countdown overlay but still need to check distance to iceberg
     this.checkFatalIcebergDistance();
   }
 
@@ -265,7 +230,8 @@ export class GameManager {
     if (distanceToFatal <= 500 && !this.icebergSpotted) {
       this.icebergSpotted = true;
       this.disasterCountdown = 37; // Historical 37 seconds
-      this.showIcebergSpottedAlert();
+      // We're not showing the alert anymore
+      // this.showIcebergSpottedAlert();
       this.startCountdownTimer();
     }
 
@@ -279,7 +245,6 @@ export class GameManager {
       if (distanceToFatal > safeDistance) {
         this.fatalIcebergAvoided = true;
         this.showHistoryChangedMessage();
-        this.countdownElement.style.display = "none";
       }
     }
 
@@ -397,82 +362,20 @@ export class GameManager {
   }
 
   showIcebergSpottedAlert() {
-    // Create dramatic alert
-    const alert = document.createElement("div");
-    alert.style.cssText = `
-        position: fixed;
-        top: 20%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(255, 0, 0, 0.95);
-        color: white;
-        padding: 30px 50px;
-        border: 4px solid #fff;
-        border-radius: 15px;
-        font-family: 'Times New Roman', serif;
-        font-size: 2.5rem;
-        font-weight: bold;
-        text-align: center;
-        z-index: 2000;
-        box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
-        animation: alertFlash 1s ease-in-out infinite;
-    `;
-
-    alert.innerHTML = `
-        <div>🧊 ICEBERG AHEAD! 🧊</div>
-        <div style="font-size: 1.5rem; margin-top: 10px;">HARD A-STARBOARD!</div>
-        <div style="font-size: 1.2rem; margin-top: 10px; color: #ffcccc;">Historical recreation - 37 seconds to impact</div>
-    `;
-
-    // Add CSS animation
-    const style = document.createElement("style");
-    style.textContent = `
-        @keyframes alertFlash {
-            0% { opacity: 1; transform: translateX(-50%) scale(1); }
-            50% { opacity: 0.8; transform: translateX(-50%) scale(1.05); }
-            100% { opacity: 1; transform: translateX(-50%) scale(1); }
-        }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(alert);
-
-    // Remove after 5 seconds
-    setTimeout(() => {
-      if (alert.parentNode) alert.parentNode.removeChild(alert);
-      if (style.parentNode) style.parentNode.removeChild(style);
-    }, 5000);
-
-    // Play alarm sound
-    this.audioManager.playWarningAlarm();
+    // We're removing the iceberg alert
+    // No need to play alarm sound either
+    // this.audioManager.playWarningAlarm();
   }
 
   startCountdownTimer() {
-    this.countdownElement.style.display = "block";
-
+    // We're removing the countdown timer display
+    // But we still need to decrease the countdown value for game logic
     const updateCountdown = () => {
       if (this.gameState !== "playing" || this.disasterCountdown <= 0) {
-        this.countdownElement.style.display = "none";
         return;
       }
 
-      this.countdownElement.innerHTML = `
-            <div>⏰ TIME TO IMPACT</div>
-            <div style="font-size: 3rem; color: #ffff00; margin: 10px 0;">${Math.ceil(
-              this.disasterCountdown
-            )}</div>
-            <div style="font-size: 1.2rem;">SECONDS REMAINING</div>
-        `;
-
       this.disasterCountdown -= 0.1;
-
-      // Change color as time runs out
-      if (this.disasterCountdown <= 10) {
-        this.countdownElement.style.background = "rgba(255, 0, 0, 0.95)";
-        this.countdownElement.style.animation =
-          "pulse 0.5s ease-in-out infinite";
-      }
-
       setTimeout(updateCountdown, 100);
     };
 
@@ -497,8 +400,24 @@ export class GameManager {
 
     // Update game objects
     this.inputController.update(deltaTime);
+    
+    // Ensure ship always has forward momentum
+    if (this.ship.speed < 1) {
+      this.ship.speed = 18; // Reset to max speed if it somehow got reduced to near zero
+      
+      // Recalculate velocity based on current rotation
+      const direction = new THREE.Vector3(0, 0, -1);
+      direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.ship.rotation);
+      this.ship.velocity.copy(direction.multiplyScalar(this.ship.speed * 0.5));
+      
+      console.log('🚢 Corrected ship movement:', { speed: this.ship.speed, velocity: this.ship.velocity });
+    }
+    
     this.ship.update(deltaTime);
-    this.ocean.update(deltaTime);
+
+    // Update ocean with ship wake effects
+    this.ocean.update(deltaTime, this.ship.position, this.ship.velocity);
+
     this.icebergs.update(deltaTime);
 
     // AI prediction system
@@ -533,6 +452,15 @@ export class GameManager {
 
     // Update camera to follow ship
     this.updateCamera();
+    
+    // Update ship light to follow the Titanic model
+    if (this.shipLight && this.ship) {
+      this.shipLight.position.set(
+        this.ship.position.x,
+        this.ship.position.y + 30,
+        this.ship.position.z + 20
+      );
+    }
   }
 
   checkCollisions() {
@@ -560,11 +488,6 @@ export class GameManager {
   hitFatalIceberg() {
     // Recreate the historical disaster
     this.showDisasterMessage();
-
-    // Stop the countdown
-    if (this.countdownElement) {
-      this.countdownElement.style.display = "none";
-    }
 
     // Create dramatic collision effects
     this.createCollisionEffects();
@@ -677,7 +600,22 @@ export class GameManager {
 
   updateCamera() {
     const shipPosition = this.ship.position;
+    
+    // Update camera target to follow ship
     this.controls.target.copy(shipPosition);
+    
+    // ALSO UPDATE CAMERA POSITION to follow behind the ship
+    const cameraOffset = new THREE.Vector3(0, 30, 80); // Behind and above the ship
+    const newCameraPosition = shipPosition.clone().add(cameraOffset);
+    
+    // Smoothly move camera to follow ship
+    this.camera.position.lerp(newCameraPosition, 0.05);
+    
+    console.log('📷 CAMERA UPDATE:', { 
+      shipPos: shipPosition.clone(), 
+      cameraPos: this.camera.position.clone(),
+      target: this.controls.target.clone()
+    });
   }
 
   gameOver(survived) {

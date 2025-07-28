@@ -24,26 +24,31 @@ export class GameUI {
         this.hudElement.id = 'game-hud';
         this.hudElement.className = 'game-hud hidden';
         this.hudElement.innerHTML = `
+            <div class="controls-reminder" style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; color: white;">
+                <div style="font-size: 1.2rem; margin-bottom: 10px; color: #ffd700;">CONTROLS</div>
+                <div style="font-size: 1.5rem;"><strong>A</strong> - Turn Left</div>
+                <div style="font-size: 1.5rem;"><strong>D</strong> - Turn Right</div>
+            </div>
+            
             <div class="survival-prediction">
                 <div class="survival-rate">
-                    <span class="label">Survival Rate</span>
-                    <span class="percentage">100%</span>
+                    <span class="label">SURVIVAL PREDICTION</span>
+                    <div class="percentage">100%</div>
                 </div>
-                <div class="risk-indicator">
+                <div class="risk-assessment">
                     <span class="label">Risk Level</span>
                     <span class="risk-level safe">SAFE</span>
                 </div>
-                <div class="countdown-timer">
-                    <span class="label">Time to Decision</span>
-                    <span class="timer">--</span>
-                </div>
                 <div class="recommendations">
                     <span class="label">Recommended Actions</span>
-                    <div class="action-list"></div>
+                    <div class="action-list">
+                        <div class="action">Maintain course</div>
+                    </div>
                 </div>
             </div>
             
             <div class="ship-status">
+                <div class="status-header">SHIP STATUS</div>
                 <div class="speed-indicator">
                     <span class="label">Speed</span>
                     <span class="value">0 knots</span>
@@ -57,15 +62,15 @@ export class GameUI {
                     <span class="value running">RUNNING</span>
                 </div>
                 <div class="rudder-angle">
-                    <span class="label">Rudder</span>
+                    <span class="label">Rudder Angle</span>
                     <span class="value">0°</span>
                 </div>
                 <div class="steering-response">
-                    <span class="label">Steering</span>
+                    <span class="label">Steering Response</span>
                     <span class="value">100%</span>
                 </div>
                 <div class="emergency-status">
-                    <span class="label">Emergency</span>
+                    <span class="label">Emergency Maneuver</span>
                     <span class="value ready">READY</span>
                 </div>
                 <div class="damage-assessment">
@@ -76,31 +81,25 @@ export class GameUI {
                     <span class="label">Crew Morale</span>
                     <span class="value">100%</span>
                 </div>
-                <div class="historical-context" style="margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 0.8rem;">
-                    <div style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">Historical Context</div>
-                    <div style="color: #cccccc;">RMS Titanic - April 14, 1912</div>
-                    <div style="color: #cccccc;">Length: 269m | Mass: 52,310 tons</div>
-                    <div style="color: #cccccc;">Can you change history?</div>
-                </div>
             </div>
             
             <div class="mini-map">
                 <canvas id="mini-map-canvas" width="200" height="200"></canvas>
                 <div class="map-legend">
                     <div class="legend-item">
-                        <span class="ship-icon"></span>
-                        <span>Titanic</span>
+                        <div class="ship-icon"></div>
+                        <span>Ship</span>
                     </div>
                     <div class="legend-item">
-                        <span class="iceberg-icon"></span>
-                        <span>Icebergs</span>
+                        <div class="iceberg-icon"></div>
+                        <span>Iceberg</span>
                     </div>
                 </div>
             </div>
             
-            <div class="game-time">
-                <span class="label">Time Survived</span>
-                <span class="time">00:00</span>
+            <div class="game-time" style="position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; color: white;">
+                <span class="label" style="font-size: 1.2rem; color: #ffd700;">Time Survived</span>
+                <span class="time" style="font-size: 1.5rem; display: block; text-align: center;">00:00</span>
             </div>
         `;
         
@@ -111,29 +110,51 @@ export class GameUI {
         this.startScreenElement = document.createElement('div');
         this.startScreenElement.id = 'start-screen';
         this.startScreenElement.className = 'start-screen';
+        
+        // Add inline CSS to ensure the start screen is visible
+        this.startScreenElement.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, #000033 0%, #001122 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Times New Roman', serif;
+            color: #ffffff;
+            z-index: 1000;
+            text-align: center;
+        `;
         this.startScreenElement.innerHTML = `
             <div class="start-content">
                 <h1 class="game-title">Titanic Survival Prediction</h1>
-                <p class="game-subtitle">Navigate the Titanic through treacherous waters</p>
+                <p class="game-subtitle">Can you save the Titanic?</p>
                 
                 <div class="historical-info">
                     <p>April 14, 1912 - North Atlantic Ocean</p>
-                    <p>Your mission: Guide the RMS Titanic safely through the iceberg field</p>
+                    <p>Your mission: Steer the Titanic away from the iceberg!</p>
                 </div>
                 
-                <div class="difficulty-selection">
-                    <h3>Choose Difficulty</h3>
-                    <button class="difficulty-btn" data-difficulty="Calm Seas">
-                        <span class="difficulty-name">Calm Seas</span>
-                        <span class="difficulty-desc">Clear visibility, few icebergs</span>
-                    </button>
-                    <button class="difficulty-btn" data-difficulty="Rough Waters">
-                        <span class="difficulty-name">Rough Waters</span>
-                        <span class="difficulty-desc">Moderate conditions, more icebergs</span>
-                    </button>
-                    <button class="difficulty-btn" data-difficulty="Perfect Storm">
-                        <span class="difficulty-name">Perfect Storm</span>
-                        <span class="difficulty-desc">Poor visibility, dense iceberg field</span>
+                <div style="margin: 2rem 0;">
+                    <button id="start-game-btn" style="
+                        display: block;
+                        width: 100%;
+                        max-width: 400px;
+                        margin: 1rem auto;
+                        padding: 15px 20px;
+                        background: linear-gradient(135deg, #2c4c6c 0%, #1a3a5a 100%);
+                        border: 2px solid #ffd700;
+                        border-radius: 8px;
+                        color: #ffffff;
+                        font-family: 'Times New Roman', serif;
+                        font-size: 1.5rem;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    ">
+                        START GAME
                     </button>
                 </div>
                 
@@ -157,13 +178,90 @@ export class GameUI {
         
         document.body.appendChild(this.startScreenElement);
         
-        // Add event listeners for difficulty buttons
-        this.startScreenElement.querySelectorAll('.difficulty-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const difficulty = e.currentTarget.dataset.difficulty;
-                document.dispatchEvent(new CustomEvent('startGame', { detail: { difficulty } }));
+        // Add CSS for hidden class and button hover effects
+        const style = document.createElement('style');
+        style.textContent = `
+            .hidden {
+                display: none !important;
+            }
+            
+            .difficulty-btn:hover {
+                background: linear-gradient(135deg, #3c5c7c 0%, #2a4a6a 100%) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3) !important;
+            }
+            
+            .start-content {
+                max-width: 800px;
+                padding: 40px;
+            }
+            
+            .game-title {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                color: #ffd700;
+            }
+            
+            .game-subtitle {
+                font-size: 1.5rem;
+                margin-bottom: 2rem;
+                color: #cccccc;
+            }
+            
+            .historical-info {
+                margin-bottom: 2rem;
+                padding: 20px;
+                border: 2px solid #ffd700;
+                border-radius: 10px;
+                background: rgba(0, 0, 0, 0.3);
+            }
+            
+            .controls-info {
+                text-align: left;
+                max-width: 300px;
+                margin: 2rem auto 0;
+            }
+            
+            .controls-info h3 {
+                text-align: center;
+                color: #ffd700;
+                margin-bottom: 1rem;
+            }
+            
+            .control-item {
+                display: flex;
+                justify-content: space-between;
+                margin: 0.5rem 0;
+                padding: 5px 0;
+                border-bottom: 1px solid #333;
+            }
+            
+            .key {
+                font-weight: bold;
+                color: #ffd700;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add event listener for start game button
+        const startButton = this.startScreenElement.querySelector('#start-game-btn');
+        if (startButton) {
+            startButton.addEventListener('click', () => {
+                document.dispatchEvent(new CustomEvent('startGame'));
             });
-        });
+            
+            // Add hover effects
+            startButton.addEventListener('mouseover', () => {
+                startButton.style.transform = 'scale(1.05)';
+                startButton.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)';
+            });
+            
+            startButton.addEventListener('mouseout', () => {
+                startButton.style.transform = 'scale(1)';
+                startButton.style.boxShadow = 'none';
+            });
+        }
     }
 
     createGameOverScreen() {
@@ -283,16 +381,23 @@ export class GameUI {
         
         const { survivalRate, riskLevel, recommendations, shipStatus, gameTime } = data;
         
-        // Update survival prediction
-        this.hudElement.querySelector('.survival-prediction .percentage').textContent = `${Math.round(survivalRate)}%`;
+        // Update survival prediction with null checks
+        const percentageElement = this.hudElement.querySelector('.survival-prediction .percentage');
+        if (percentageElement) {
+            percentageElement.textContent = `${Math.round(survivalRate)}%`;
+        }
         
         const riskElement = this.hudElement.querySelector('.risk-level');
-        riskElement.textContent = riskLevel.toUpperCase();
-        riskElement.className = `risk-level ${riskLevel}`;
+        if (riskElement) {
+            riskElement.textContent = riskLevel.toUpperCase();
+            riskElement.className = `risk-level ${riskLevel}`;
+        }
         
-        // Update recommendations
+        // Update recommendations with null check
         const actionList = this.hudElement.querySelector('.action-list');
-        actionList.innerHTML = recommendations.map(action => `<div class="action">${action}</div>`).join('');
+        if (actionList) {
+            actionList.innerHTML = recommendations.map(action => `<div class="action">${action}</div>`).join('');
+        }
         
         // Update ship status
         this.hudElement.querySelector('.ship-status .speed-indicator .value').textContent = `${Math.round(shipStatus.speed)} knots`;
