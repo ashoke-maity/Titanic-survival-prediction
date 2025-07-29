@@ -25,18 +25,6 @@ This project is brought to life using modern web technologies:
 
 ---
 
-## 🚀 Getting Started
-
-To run this project locally, follow these simple steps.
-
-### Prerequisites
-
-Make sure you have Node.js and npm installed on your machine.
-
-* [Node.js](https://nodejs.org/) (which includes npm)
-
----
-
 ## 🎮 How to Play
 
 1.  Launch the game and select a difficulty mode.
