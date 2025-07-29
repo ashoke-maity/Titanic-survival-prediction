@@ -65,7 +65,3 @@ Make sure you have Node.js and npm installed on your machine.
 4.  Based on the outcome, you will receive a **Survival Score (%)**. Try to get 100%!
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
