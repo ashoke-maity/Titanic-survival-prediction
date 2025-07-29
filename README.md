@@ -35,26 +35,6 @@ Make sure you have Node.js and npm installed on your machine.
 
 * [Node.js](https://nodejs.org/) (which includes npm)
 
-### Installation
-
-1.  **Clone the repository:**
-    ```sh
-    git clone [https://github.com/your-username/your-repository-name.git](https://github.com/your-username/your-repository-name.git)
-    ```
-2.  **Navigate to the project directory:**
-    ```sh
-    cd your-repository-name
-    ```
-3.  **Install dependencies:**
-    ```sh
-    npm install
-    ```
-4.  **Start the development server:**
-    ```sh
-    npm start
-    ```
-    Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
 ---
 
 ## 🎮 How to Play
